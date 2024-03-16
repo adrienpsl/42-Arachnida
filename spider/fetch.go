@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 func GetLinksFromHTML(url string) ([]string, error) {
@@ -42,4 +43,45 @@ func closeBody(Body io.ReadCloser) {
 	if err != nil {
 		log.Println(err.Error())
 	}
+}
+
+func FilterLinksByExtensions(links []string, extensions []string, mode bool) []string {
+	var filteredLinks []string
+
+	for _, link := range links {
+		hasMatchingExtension := false
+		for _, ext := range extensions {
+			if strings.HasSuffix(link, ext) {
+				hasMatchingExtension = true
+				break
+			}
+		}
+
+		if (mode && hasMatchingExtension) || (!mode && !hasMatchingExtension) {
+			filteredLinks = append(filteredLinks, link)
+		}
+	}
+
+	return filteredLinks
+}
+
+func FilterNewLinks(links []string, oldLinks []string) []string {
+	var newLinks []string
+
+	for _, link := range links {
+		if !sameString(oldLinks, link) {
+			newLinks = append(newLinks, link)
+		}
+	}
+
+	return newLinks
+}
+
+func sameString(links []string, link string) bool {
+	for _, l := range links {
+		if l == link {
+			return true
+		}
+	}
+	return false
 }

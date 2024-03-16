@@ -19,7 +19,6 @@ func TestGetHTMLBody(t *testing.T) {
 			}))
 	// Close the server when the test finishes
 	defer server.Close()
-
 	// Test the function
 	bodyText, err := getHTMLBody(server.URL) // url is like localhost:1234
 	if err != nil {
@@ -39,5 +38,20 @@ func TestGetHTMLBodyError(t *testing.T) {
 	}
 	if body != "" {
 		t.Error("Expected no body")
+	}
+}
+
+func TestFilterLinksByExtensions(t *testing.T) {
+	imgUrl := "http://example.com/image.jpg"
+	linkUrl := "http://example.com/link.html"
+
+	resultUrl := FilterLinksByExtensions([]string{imgUrl, linkUrl}, []string{".jpg", ".png"}, true)
+	inverse := FilterLinksByExtensions([]string{imgUrl, linkUrl}, []string{".jpg", ".png"}, false)
+
+	if len(resultUrl) != 1 || len(inverse) != 1 {
+		t.Error("Bad url filtering")
+	}
+	if resultUrl[0] != imgUrl || inverse[0] != linkUrl {
+		t.Error("Bad url filtering")
 	}
 }
