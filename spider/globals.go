@@ -1,6 +1,8 @@
 package main
 
+import "loggerPkg"
+
 var data Data
-var logger = NewLogger(LevelDebug)
+var logger = loggerPkg.NewLogger(loggerPkg.LevelDebug)
 
 var settings Settings

@@ -1,4 +1,4 @@
-package main
+package loggerPkg
 
 import (
 	"os"
@@ -8,7 +8,6 @@ import (
 import (
 	"fmt"
 	"log"
-	"time"
 )
 
 type LogLevel int
@@ -54,9 +53,8 @@ func (l *Logger) Error(message string) {
 
 func (l *Logger) log(level LogLevel, message string) {
 	if level >= l.level {
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
 		levelString := getLevelString(level)
-		logMessage := fmt.Sprintf("[%s] [%s] %s", timestamp, levelString, message)
+		logMessage := fmt.Sprintf("[%s] %s", levelString, message)
 		log.Println(logMessage)
 	}
 }

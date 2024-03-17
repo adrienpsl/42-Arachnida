@@ -62,9 +62,7 @@ func imagesDownloader(fileUrls *[]string) error {
 		go func(path string) {
 			defer func() {
 				wg.Done()
-				//fmt.Println("done", path)
 			}()
-			//fmt.Println("start", path)
 			err := downloadFile(path)
 			if err != nil {
 				fmt.Errorf("can't download file")

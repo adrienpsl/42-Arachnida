@@ -32,11 +32,9 @@ func PopulateData(deepData *DeepData, links []string, data *Data) {
 
 		go func(url string) {
 			defer func() {
-				//fmt.Println("done", url)
 				wg.Done()
 			}()
 
-			//fmt.Println("star", url)
 			rawLinks, err := GetLinksFromHTML(url)
 			if err != nil {
 				//fmt.Println("bad url continue")
@@ -53,10 +51,11 @@ func PopulateData(deepData *DeepData, links []string, data *Data) {
 
 			links = FilterNewLinks(notImageLinks, visitedLinks)
 			visitedLinks = append(visitedLinks, links...)
-			mu.Unlock()
 
 			deepData.Images = append(deepData.Images, images...)
 			deepData.Links = append(deepData.Links, links...)
+			mu.Unlock()
+
 			<-ch
 		}(link)
 	}
