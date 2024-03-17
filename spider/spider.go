@@ -6,21 +6,30 @@ import (
 	"os"
 )
 
-const URL = "https://www.medical.fr/equipements-hospitaliers/chariot-hospitalier?page=2"
-
-// const URL = "https://dzone.com/articles/batch-processing-in-go"
-const DEEP = 3
-
 type Data struct {
 	Images []string
 	Links  []string
 }
 
+type Settings struct {
+	batchSize  int
+	deep       int
+	extensions []string
+	startUrl   string
+}
+
+var settings = Settings{
+	batchSize:  30,
+	extensions: []string{".jpg", ".jpeg", ".png", ".gif", ".bmp"},
+	deep:       3,
+	startUrl:   "https://www.medical.fr/equipements-hospitaliers/chariot-hospitalier?page=2",
+}
+
 func main() {
 	// !!test check deep = 0
 
-	var data = make(map[int]Data, DEEP)
-	data = LoopOnLinks(data, URL, DEEP)
+	var data = make(map[int]Data, settings.deep)
+	data = LoopOnLinks(data)
 
 	// Convert the data map to JSON
 	jsonData, err := json.Marshal(data)

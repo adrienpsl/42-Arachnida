@@ -5,17 +5,31 @@ import (
 	"sync"
 )
 
-var extensions = []string{".jpg", ".jpeg", ".png", ".gif", ".bmp"}
+var visitedLinks []string
+var foundedImages []string
 
-const batchSize = 30
+func LoopOnLinks(data map[int]Data) map[int]Data {
+	var mu sync.Mutex
 
-func PopulateData(data Data, links []string, allReadyVisited *[]string, allReadyHaveImage *[]string, mu *sync.Mutex) Data {
-	ch := make(chan struct{}, batchSize)
+	visitedLinks = []string{settings.startUrl}
+	foundedImages = []string{}
+	links := []string{settings.startUrl}
+	for index := 0; index < settings.deep; index++ {
+		fmt.Println("start loop", links, index, settings.deep)
+		data[index] = Data{Images: make([]string, 0), Links: make([]string, 0)}
+		data[index] = PopulateData(data[index], links, &mu)
+		links = data[index].Links
+		visitedLinks = append(visitedLinks, links...)
+	}
+
+	return data
+}
+
+func PopulateData(data Data, links []string, mu *sync.Mutex) Data {
+	ch := make(chan struct{}, settings.batchSize)
 	var wg sync.WaitGroup
 
-	fmt.Println("links", links)
 	for _, link := range links {
-
 		wg.Add(1)
 		ch <- struct{}{}
 
@@ -32,15 +46,16 @@ func PopulateData(data Data, links []string, allReadyVisited *[]string, allReady
 				return
 			}
 			// i can have multiple images with same name, i need to keep all and update their name.
-			allImages := FilterLinksByExtensions(rawLinks, extensions, true)
-			notImageLinks := FilterLinksByExtensions(rawLinks, extensions, false)
+			allImages := FilterLinksByExtensions(rawLinks, settings.extensions, true)
+			notImageLinks := FilterLinksByExtensions(rawLinks, settings.extensions, false)
 
+			// here i lock to be sure that each element is uniq
 			mu.Lock()
-			images := FilterNewLinks(allImages, *allReadyHaveImage)
-			*allReadyHaveImage = append(*allReadyHaveImage, images...)
+			images := FilterNewLinks(allImages, foundedImages)
+			foundedImages = append(foundedImages, images...)
 
-			links = FilterNewLinks(notImageLinks, *allReadyVisited)
-			*allReadyVisited = append(*allReadyVisited, links...)
+			links = FilterNewLinks(notImageLinks, visitedLinks)
+			visitedLinks = append(visitedLinks, links...)
 			mu.Unlock()
 
 			data.Images = append(data.Images, images...)
@@ -50,23 +65,6 @@ func PopulateData(data Data, links []string, allReadyVisited *[]string, allReady
 	}
 
 	wg.Wait()
-
-	return data
-}
-
-func LoopOnLinks(data map[int]Data, startUrl string, deep int) map[int]Data {
-	var mu sync.Mutex
-
-	allReadyVisited := []string{startUrl}
-	allReadyHaveImage := []string{}
-	links := []string{startUrl}
-	for index := 0; index < deep; index++ {
-		fmt.Println("start loop", links, index, deep)
-		data[index] = Data{Images: make([]string, 0), Links: make([]string, 0)}
-		data[index] = PopulateData(data[index], links, &allReadyVisited, &allReadyHaveImage, &mu)
-		links = data[index].Links
-		allReadyVisited = append(allReadyVisited, links...)
-	}
 
 	return data
 }
