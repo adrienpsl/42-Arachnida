@@ -1,6 +1,6 @@
 package main
 
 var data Data
-var logger = NewLogger(LevelInfo)
+var logger = NewLogger(LevelDebug)
 
 var settings Settings

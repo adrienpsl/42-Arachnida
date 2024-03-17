@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -14,7 +13,7 @@ func LoopOnLinks(data *Data) {
 	visitedLinks = []string{settings.startUrl}
 	links := []string{settings.startUrl}
 	for index := 0; index < settings.deep; index++ {
-		fmt.Println("start loop", links, index, settings.deep)
+		logger.Debug("start loop", index, "with", len(links), "links")
 		deepData[index] = DeepData{Images: make([]string, 0), Links: make([]string, 0)}
 		PopulateData(&deepData[index], links, data)
 		links = deepData[index].Links

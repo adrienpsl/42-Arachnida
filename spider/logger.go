@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 import (
 	"fmt"
@@ -25,7 +28,9 @@ func NewLogger(level LogLevel) *Logger {
 	return &Logger{level: level}
 }
 
-func (l *Logger) Debug(message string) {
+func (l *Logger) Debug(args ...interface{}) {
+	message := fmt.Sprintln(args...)
+	message = strings.TrimSuffix(message, "\n")
 	l.log(LevelDebug, message)
 }
 
