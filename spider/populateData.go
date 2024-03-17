@@ -6,26 +6,24 @@ import (
 )
 
 var visitedLinks []string
-var foundedImages []string
+var mu sync.Mutex
 
-func LoopOnLinks(data map[int]Data) map[int]Data {
-	var mu sync.Mutex
+func LoopOnLinks(data *Data) {
+	deepData := (*data).DeepData
 
 	visitedLinks = []string{settings.startUrl}
-	foundedImages = []string{}
 	links := []string{settings.startUrl}
 	for index := 0; index < settings.deep; index++ {
 		fmt.Println("start loop", links, index, settings.deep)
-		data[index] = Data{Images: make([]string, 0), Links: make([]string, 0)}
-		data[index] = PopulateData(data[index], links, &mu)
-		links = data[index].Links
+		deepData[index] = DeepData{Images: make([]string, 0), Links: make([]string, 0)}
+		PopulateData(&deepData[index], links, data)
+		links = deepData[index].Links
 		visitedLinks = append(visitedLinks, links...)
 	}
 
-	return data
 }
 
-func PopulateData(data Data, links []string, mu *sync.Mutex) Data {
+func PopulateData(deepData *DeepData, links []string, data *Data) {
 	ch := make(chan struct{}, settings.batchSize)
 	var wg sync.WaitGroup
 
@@ -35,14 +33,14 @@ func PopulateData(data Data, links []string, mu *sync.Mutex) Data {
 
 		go func(url string) {
 			defer func() {
-				fmt.Println("done", url)
+				//fmt.Println("done", url)
 				wg.Done()
 			}()
 
-			fmt.Println("star", url)
+			//fmt.Println("star", url)
 			rawLinks, err := GetLinksFromHTML(url)
 			if err != nil {
-				fmt.Println("bad url continue")
+				//fmt.Println("bad url continue")
 				return
 			}
 			// i can have multiple images with same name, i need to keep all and update their name.
@@ -51,20 +49,18 @@ func PopulateData(data Data, links []string, mu *sync.Mutex) Data {
 
 			// here i lock to be sure that each element is uniq
 			mu.Lock()
-			images := FilterNewLinks(allImages, foundedImages)
-			foundedImages = append(foundedImages, images...)
+			images := FilterNewLinks(allImages, data.FoundedImages)
+			data.FoundedImages = append(data.FoundedImages, images...)
 
 			links = FilterNewLinks(notImageLinks, visitedLinks)
 			visitedLinks = append(visitedLinks, links...)
 			mu.Unlock()
 
-			data.Images = append(data.Images, images...)
-			data.Links = append(data.Links, links...)
+			deepData.Images = append(deepData.Images, images...)
+			deepData.Links = append(deepData.Links, links...)
 			<-ch
 		}(link)
 	}
 
 	wg.Wait()
-
-	return data
 }

@@ -7,45 +7,75 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
-func downloadFile(url, destDir string) error {
+func downloadFile(url string) error {
 	client := &http.Client{}
 	resp, err := client.Get(url)
 	if err != nil {
 		// @todo put error into const file
-		return fmt.Errorf("unable to dl the file %v", err)
+		return logger.Errorf("Can't fetch file", err)
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
-	// Create the destination directory if it doesn't exist
-	err = os.MkdirAll(destDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("error while creating directory: %v", err)
-	}
+	filename := strings.ReplaceAll(url, "https://", "")
+	filename = strings.ReplaceAll(filename, "/", "-")
+	filePath := filepath.Join(settings.destDir, filename)
 
-	filename := strings.ReplaceAll(url, "/", "-")
-	filePath := filepath.Join(destDir, filename)
 	out, err := os.Create(filePath)
 	if err != nil {
 		// @todo better error
-		return fmt.Errorf("Can't create file %v", err)
+		return logger.Errorf("Can't create file", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		// @todo fix
-		return fmt.Errorf("cant write file %v", err)
+		return logger.Errorf("cant write file", err)
 	}
 
 	return nil
 }
 
-// Second loop that will batch stuff
-//func DownloadAllFiles(fileUrl string[]) error {
-//	ch := make(chan struct{})
-//
-//}
+func imagesDownloader(fileUrls *[]string) error {
+	ch := make(chan struct{}, settings.batchSize)
+	var wg sync.WaitGroup
 
-// First loop on all download
+	logger.Info("Remove old directory if it exists")
+	err := os.RemoveAll(settings.destDir)
+	if err != nil {
+		return logger.Errorf("error while removing directory", err)
+	}
+
+	logger.Info("Create new directory " + settings.destDir)
+	err = os.MkdirAll(settings.destDir, os.ModePerm)
+	if err != nil {
+		return logger.Errorf("error while creating directory", err)
+	}
+
+	for _, fileUrl := range *fileUrls {
+		wg.Add(1)
+		ch <- struct{}{}
+
+		go func(path string) {
+			defer func() {
+				wg.Done()
+				fmt.Println("done", path)
+			}()
+			fmt.Println("start", path)
+			err := downloadFile(path)
+			if err != nil {
+				fmt.Errorf("can't download file")
+			}
+
+			<-ch
+		}(fileUrl)
+
+	}
+
+	wg.Wait()
+
+	return nil
+}
